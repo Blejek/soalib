@@ -20,6 +20,8 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "-O2 -g")
 message(STATUS ${CMAKE_BUILD_TYPE})
 
 add_subdirectory(soalib)
+target_include_directories(soalib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(soalib::soalib ALIAS soalib)
 
 if(DEFINED ${SOA_SAMPLES} AND ${SOA_SAMPLES} STREQUAL ON)
     add_subdirectory(test)

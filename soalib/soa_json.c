@@ -33,6 +33,14 @@ SOFTWARE.
 #include <string.h>
 #include <sys/types.h>
 
+#ifdef _WIN64
+#define SOA_LD_FORMAT "%lld"
+#define SOA_LU_FORMAT "%llu"
+#else
+#define SOA_LD_FORMAT "%ld"
+#define SOA_LU_FORMAT "%lu"
+#endif
+
 typedef struct {
     char* str;
     size_t cap;
@@ -321,7 +329,7 @@ static const char* _parse_num(const char* ptr, uint8_t* data){
     if(num_data){
         return ptr;
     }
-    return nullptr;
+    return NULL;
 }
 
 static const char* _parse_num_or_bool(const char* ptr, _json_info_t* i){
@@ -335,11 +343,11 @@ static const char* _parse_num_or_bool(const char* ptr, _json_info_t* i){
         return ptr + 4;
 
     }
-    else if((ptr = _parse_num(ptr, nullptr))){
+    else if((ptr = _parse_num(ptr, NULL))){
         return ptr;
     }
     else{
-        return nullptr;
+        return NULL;
     }
     return ++ptr;
 }
@@ -381,7 +389,7 @@ static const char* _read_num_or_bool(const char* ptr, _json_info_t* i, _json_rea
             }
             return ptr;
         }
-        return nullptr;
+        return NULL;
     }
     return ++ptr;
 }
@@ -392,7 +400,7 @@ static const char* _parse_str(const char* ptr, _json_info_t* i){
     while(*ptr != '"'){
         if(!*ptr){
             soa_error_push("String not terminated properly!", 21);
-            return nullptr;
+            return NULL;
         }
         if(*ptr == '\\'){
             ptr++;
@@ -522,25 +530,25 @@ static const char* _parse_obj(const char* ptr, _json_info_t* i){
     while(*ptr != '}'){
         if(!*ptr){
             soa_error_push("Object not terminated properly!", 11);
-            return nullptr;
+            return NULL;
         }
 
         // key
         ptr = _parse_str(ptr, i);
         if(!ptr){
-            return nullptr;
+            return NULL;
         }
         ptr = _skip_ws(ptr);
         if(*ptr != ':'){
             soa_error_push("Invalid key: pair!!", 12);
-            return nullptr;
+            return NULL;
         }
         ptr = _skip_ws(++ptr);
 
         // value
         ptr = _parse_val(ptr, i);
         if(!ptr){
-            return nullptr;
+            return NULL;
         }
         ptr = _skip_ws(ptr);
         
@@ -603,11 +611,11 @@ static const char* _parse_arr(const char* ptr, _json_info_t* i){
     while(*ptr != ']'){
         if(!*ptr){
             soa_error_push("Array not terminated properly!", 01);
-            return nullptr;
+            return NULL;
         }
         ptr = _parse_val(ptr, i);
         if(!ptr){
-            return nullptr;
+            return NULL;
         }
         ptr = _skip_ws(ptr);
         i->ae++;
@@ -648,7 +656,7 @@ static const char* _parse_val(const char* ptr, _json_info_t* i){
     const char* val = ptr;
     
     if(!val){
-        return nullptr;
+        return NULL;
     }
 
     switch(*val){
@@ -665,7 +673,7 @@ static const char* _parse_val(const char* ptr, _json_info_t* i){
         val = _parse_num_or_bool(val, i);
         if(!val){
             soa_error_push("Value expected", 32);
-            return nullptr;
+            return NULL;
         }
     }
     
@@ -910,13 +918,13 @@ void _print_val(soa_val_t* val, _soa_str_t* str, soa_json_parse_flags_t flags, s
             break;
         }
         case SOA_TYPE_INT:{
-            size_t size = snprintf(NULL, 0, "%ld", soa_val_int(val));
-            snprintf(_soa_str_add_size(str, size + 1), size + 1, "%ld", soa_val_int(val));
+            size_t size = snprintf(NULL, 0, SOA_LD_FORMAT, soa_val_int(val));
+            snprintf(_soa_str_add_size(str, size + 1), size + 1, SOA_LD_FORMAT, soa_val_int(val));
             break;
         }
         case SOA_TYPE_UINT:{
-            size_t size = snprintf(NULL, 0, "%lu", soa_val_uint(val));
-            snprintf(_soa_str_add_size(str, size + 1), size + 1, "%lu", soa_val_uint(val));
+            size_t size = snprintf(NULL, 0, SOA_LU_FORMAT, soa_val_uint(val));
+            snprintf(_soa_str_add_size(str, size + 1), size + 1, SOA_LU_FORMAT, soa_val_uint(val));
             break;
         }
         case SOA_TYPE_FLOAT:{

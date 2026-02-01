@@ -53,7 +53,7 @@ soa_doc_t soa_doc_new(){
         .size = 0,
         .root = 0,
         .root_type = SOA_ROOT_NULL,
-        .data = nullptr,
+        .data = NULL,
         .cap = 0
     };
     return doc;
