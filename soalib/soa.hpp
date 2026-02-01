@@ -38,6 +38,13 @@ SOFTWARE.
 
 namespace soa{
 
+#define SOA_SERIALIZE_VAL(param) \
+template<::soa::serializer_mode m, typename ref_type, bool R> \
+constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::base_val<R>& v) { \
+if constexpr (m == ::soa::serializer_mode::read) { auto _v = v.template as<decltype(val_ref.param)>(); \
+if(_v) { val_ref.param = _v.value();} else { return ::soa::err(_v.error()); } \
+} else{ v.template write<decltype(val_ref.param)>(val_ref.param); } }
+
 #define SOA_SERIALIZE_FIELD_BEGIN_ARR(element_count) \
 template<::soa::serializer_mode m, typename ref_type, bool R> \
 constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::base_val<R>& v) { \
