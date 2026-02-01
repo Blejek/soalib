@@ -21,7 +21,7 @@ message(STATUS ${CMAKE_BUILD_TYPE})
 
 add_subdirectory(soalib)
 
-if(${SOA_SAMPLES} STREQUAL ON)
+if(DEFINED ${SOA_SAMPLES} AND ${SOA_SAMPLES} STREQUAL ON)
     add_subdirectory(test)
 
     add_custom_target(ccc ALL
