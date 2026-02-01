@@ -20,7 +20,8 @@
             "architecture": "x64",
             "cacheVariables":{
                 "CMAKE_C_COMPILER": "cl",
-                "CMAKE_CXX_COMPILER": "cl"
+                "CMAKE_CXX_COMPILER": "cl",
+                "SOA_SAMPLES": "ON"
             },
             "vendor":{
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
@@ -37,7 +38,8 @@
             "cacheVariables":{
                 "CMAKE_C_COMPILER": "clang",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "SOA_SAMPLES": "ON"
             },
             "environment":{
                 "CXXFLAGS": "-fcolor-diagnostics"

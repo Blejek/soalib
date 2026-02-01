@@ -20,12 +20,13 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "-O2 -g")
 message(STATUS ${CMAKE_BUILD_TYPE})
 
 add_subdirectory(soalib)
-add_subdirectory(test)
 
-add_custom_target(ccc ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-    ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
-)
+if(${SOA_SAMPLES} STREQUAL ON)
+    add_subdirectory(test)
 
-add_compile_options(-g)
+    add_custom_target(ccc ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+        ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+    )
+endif()
