@@ -894,12 +894,12 @@ void _print_val(soa_val_t* val, _soa_str_t* str, soa_json_parse_flags_t flags, s
             _print_str(soa_val_str(val), str, flags);
             break;
         case SOA_TYPE_ARR:{
-            auto arr = soa_val_arr(val);
+            soa_arr_t arr = soa_val_arr(val);
             _print_arr(&arr, str, flags, tabs);
             break;
         }
         case SOA_TYPE_OBJ:{
-            auto obj = soa_val_obj(val);
+            soa_obj_t obj = soa_val_obj(val);
             _print_obj(&obj, str, flags, tabs);
             break;
         }
