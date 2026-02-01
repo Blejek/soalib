@@ -250,7 +250,7 @@ struct arr{
     inline constexpr bool operator==(const arr& other) const { return a.data == other.a.data && a.doc == other.a.doc; }
     inline constexpr bool operator!=(const arr& other) const { return a.data != other.a.data || a.doc != other.a.doc; }
 
-    inline constexpr size_t size(){
+    inline size_t size(){
         return soa_arr_length(&a);
     }
 
@@ -267,7 +267,7 @@ struct doc {
     soa_doc_t d;
 
     inline constexpr doc(soa_doc_t d) :d(d) {} 
-    inline constexpr doc() {
+    inline doc() {
         d = soa_doc_new();
     }
 
@@ -286,7 +286,7 @@ struct doc {
         d.root_type = 0;
     };
 
-    inline constexpr ~doc() {
+    inline ~doc() {
         soa_doc_free(&d);
     }
 
@@ -519,7 +519,7 @@ struct obj::pair{
         return soa_obj_key_at(&o->o, index);
     }
 
-    inline constexpr void set_key(str str){
+    inline void set_key(str str){
         soa_obj_set_key_at(&o->o, index, str.data());
     }
 
