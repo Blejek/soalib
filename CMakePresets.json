@@ -1,0 +1,73 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 4,
+        "minor": 2,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/bin/${presetName}"
+        },
+        {
+            "name": "windows-msvc",
+            "inherits": "base",
+            "displayName": "Windows MSVC 2026",
+            "description": "Visual Studio 18 2026",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "cacheVariables":{
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl"
+            },
+            "vendor":{
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "intelliSenseMode": "windows-msvc-x64"
+                }
+            }
+        },
+        {
+            "name": "linux-ninja",
+            "inherits": "base",
+            "displayName": "Linux Ninja + Clang",
+            "description": "Ninja + Clang",
+            "generator": "Ninja Multi-Config",
+            "cacheVariables":{
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "environment":{
+                "CXXFLAGS": "-fcolor-diagnostics"
+            }
+        }
+    ],
+    "buildPresets":[
+        {
+            "name": "windows-deb",
+            "displayName": "Windows Debug",
+            "configurePreset": "windows-msvc",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-rel",
+            "displayName": "Windows Release",
+            "configurePreset": "windows-msvc",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-deb",
+            "displayName": "Linux Debug",
+            "configurePreset": "linux-ninja",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-rel",
+            "displayName": "Linux Release",
+            "configurePreset": "linux-ninja",
+            "configuration": "Release"
+        }
+    ]
+}
