@@ -59,12 +59,12 @@ if constexpr (m == ::soa::serializer_mode::read) { auto val_v = arr.at(pos).temp
 if(val_v) {val_ref.param = val_v.value();} else {return ::soa::error(val_v.error());} \
 } else{ arr.at(pos).template write<decltype(val_ref.param)>(val_ref.param); }
 
-#define SOA_SERIALIZE_FIELD_BEGIN_OBJ(element_count) \
+#define SOA_SERIALIZE_FIELD_BEGIN_OBJ(req_count, element_count) \
 template<::soa::serializer_mode m, typename ref_type, bool R> \
 constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::base_val<R>& v) { \
 ::soa::obj obj; size_t obj_pos = 0; if constexpr (m == ::soa::serializer_mode::read) { auto obj_v = v.template as<::soa::obj>(); \
 if(obj_v) { obj = obj_v.value();} else { return ::soa::err(obj_v.error()); } \
-if(obj.size() < (element_count)) { return ::soa::err("invalid size", 1); } } \
+if(obj.size() < (req_count)) { return ::soa::err("invalid size", 1); } } \
 else{ obj = v.d->add_obj((element_count)); v.template write<::soa::obj>(obj); }
 #define SOA_PLACEHOLDER_2 }
 
@@ -74,6 +74,13 @@ if (auto obj_pair = obj.at(key); obj_pair){ auto val_v = obj_pair.val().template
 if(val_v) {val_ref.param = val_v.value();} else {return ::soa::error(val_v.error());} \
 } else{ return ::soa::error({"failed to find key: "#key, 4}); } \
 } else{ auto obj_pair = obj.at(obj_pos++); obj_pair.set_key(key); obj_pair.val().template write<decltype(val_ref.param)>(val_ref.param); }
+
+#define SOA_OBJ_OPT_FIELD(param, key) \
+if constexpr (m == ::soa::serializer_mode::read) { \
+if (auto obj_pair = obj.at(key); obj_pair){ auto val_v = obj_pair.val().template as<decltype(val_ref.param)>(); \
+if(val_v) {val_ref.param = val_v.value();} else {return ::soa::error(val_v.error());} \
+}} else{ auto obj_pair = obj.at(obj_pos++); obj_pair.set_key(key); obj_pair.val().template write<decltype(val_ref.param)>(val_ref.param); }
+
 
 #define SOA_PLACEHOLDER_3 {
 #define SOA_SERIALIZE_FILED_END() return ::soa::error(); }
