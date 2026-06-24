@@ -234,13 +234,21 @@ char*      soa_val_str  (const soa_val_t* val){
     return 0;
 }
 
+
+// TODO: skip when using c++ or change .hpp interface
 soa_obj_t  soa_val_obj  (const soa_val_t* val){
-    if(soa_val_type(val) != SOA_TYPE_OBJ) return (soa_obj_t){0};
+    if(val->data == val->doc->root && val->doc->root_type == SOA_ROOT_OBJ) {
+        return (soa_obj_t){.doc = val->doc, .data = val->doc->root};
+    } 
+    else if(soa_val_type(val) != SOA_TYPE_OBJ) return (soa_obj_t){0};
     return (soa_obj_t){.doc = val->doc, .data = *(size_t*)(val->doc->data + val->data)};
 }
 
 soa_arr_t  soa_val_arr  (const soa_val_t* val){
-    if(soa_val_type(val) != SOA_TYPE_ARR) return (soa_arr_t){0};
+    if(val->data == val->doc->root && val->doc->root_type == SOA_ROOT_ARR) {
+        return (soa_arr_t){.doc = val->doc, .data = val->doc->root};
+    } 
+    else if(soa_val_type(val) != SOA_TYPE_ARR) return (soa_arr_t){0};
     return (soa_arr_t){.doc = val->doc, .data = *(size_t*)(val->doc->data + val->data)};
 }
 
@@ -280,11 +288,25 @@ void soa_val_set_str  (const soa_val_t* val, const char*      value){
 }
 
 void soa_val_set_obj  (const soa_val_t* val, const soa_obj_t* value){
-    soa_val_set_type(val, SOA_TYPE_OBJ);
-    *(size_t*)(val->doc->data + val->data) = value->data;
+    if(val->data == val->doc->root) {
+        val->doc->root_type = SOA_ROOT_OBJ;
+        val->doc->root = value->data;
+        ((soa_val_t*)val)->data = val->doc->root;
+    }
+    else{   
+        soa_val_set_type(val, SOA_TYPE_OBJ);
+        *(size_t*)(val->doc->data + val->data) = value->data;
+    }
 }
 
 void soa_val_set_arr  (const soa_val_t* val, const soa_arr_t* value){
-    soa_val_set_type(val, SOA_TYPE_ARR);
-    *(size_t*)(val->doc->data + val->data) = value->data;
+    if(val->data == val->doc->root) {
+        val->doc->root_type = SOA_ROOT_ARR;
+        val->doc->root = value->data;
+        ((soa_val_t*)val)->data = val->doc->root;
+    }
+    else{   
+        soa_val_set_type(val, SOA_TYPE_ARR);
+        *(size_t*)(val->doc->data + val->data) = value->data;
+    }
 }
