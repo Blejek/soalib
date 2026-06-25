@@ -40,14 +40,14 @@ namespace soa{
 
 #define SOA_SERIALIZE_VAL(param) \
 template<::soa::serializer_mode m, typename ref_type, bool R> \
-constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::base_val<R>& v) { \
+constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::val& v) { \
 if constexpr (m == ::soa::serializer_mode::read) { auto _v = v.template as<decltype(val_ref.param)>(); \
 if(_v) { val_ref.param = _v.value();} else { return ::soa::err(_v.error()); } \
 } else{ v.template write<decltype(val_ref.param)>(val_ref.param); }  return ::soa::error();}
 
 #define SOA_SERIALIZE_FIELD_BEGIN_ARR(element_count) \
 template<::soa::serializer_mode m, typename ref_type, bool R> \
-constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::base_val<R>& v) { \
+constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::val& v) { \
 ::soa::arr arr; if constexpr (m == ::soa::serializer_mode::read) { auto arr_v = v.template as<::soa::arr>(); \
 if(arr_v) { arr = arr_v.value();} else { return ::soa::err(arr_v.error()); } \
 if(arr.size() < (element_count)) { return ::soa::err("invalid size", 1); } \
@@ -61,7 +61,7 @@ if(val_v) {val_ref.param = val_v.value();} else {return ::soa::error(val_v.error
 
 #define SOA_SERIALIZE_FIELD_BEGIN_OBJ(req_count, element_count) \
 template<::soa::serializer_mode m, typename ref_type, bool R> \
-constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::base_val<R>& v) { \
+constexpr static ::soa::error serializer(ref_type val_ref, const ::soa::val& v) { \
 ::soa::obj obj; size_t obj_pos = 0; if constexpr (m == ::soa::serializer_mode::read) { auto obj_v = v.template as<::soa::obj>(); \
 if(obj_v) { obj = obj_v.value();} else { return ::soa::err(obj_v.error()); } \
 if(obj.size() < (req_count)) { return ::soa::err("invalid size", 1); } } \
@@ -178,6 +178,8 @@ using result = std::expected<T, err>;
 using result_error = std::unexpected<err>;
 using error = std::optional<err>;
 
+struct val;
+
 enum class boolean : uint8_t {
     false_val,
     true_val,
@@ -195,10 +197,6 @@ enum class type : uint8_t {
     arr
 };
 
-template<bool is_root = false>
-struct base_val;
-using val = base_val<false>;
-using root_val = base_val<true>;
 struct doc;
 
 template<int step, typename cont, typename value>
@@ -291,13 +289,9 @@ struct doc {
         d.size = other.d.size;
         d.cap = other.d.cap;
         d.data = other.d.data;
-        d.root = other.d.root;
-        d.root_type = other.d.root_type;
         d.size = 0;
         d.cap =  0;
         d.data = 0;
-        d.root = 0;
-        d.root_type = 0;
     };
 
     inline ~doc() {
@@ -308,20 +302,13 @@ struct doc {
         d.size = other.d.size;
         d.cap = other.d.cap;
         d.data = other.d.data;
-        d.root = other.d.root;
-        d.root_type = other.d.root_type;
         d.size = 0;
         d.cap =  0;
         d.data = 0;
-        d.root = 0;
-        d.root_type = 0;
         return *this;
     }
 
-    inline constexpr type root_type() const{
-        return static_cast<type>(d.root_type);
-    }
-    constexpr root_val val();
+    constexpr ::soa::val val();
 
     inline obj add_obj(const size_t length){
         return {soa_doc_add_obj(&d, length), this};
@@ -339,38 +326,37 @@ enum class serializer_mode{
     write
 };
 
-template<typename T, bool R>
-concept serializable = requires (T& t, const base_val<R>& v) {
+template<typename T>
+concept serializable = requires (T& t, const val& v) {
     { T::template serializer<serializer_mode::read>(t, v) } -> std::same_as<error>;
     { T::template serializer<serializer_mode::write>(t, v) } -> std::same_as<error>;
 };
 
-template<typename T, bool R>
+template<typename T>
 struct serializer{
 };
 
-template<typename T, bool R>
-concept serializable_struct = requires (T& t, serializer<T, R> st, const base_val<R>& v) {
+template<typename T>
+concept serializable_struct = requires (T& t, serializer<T> st, const val& v) {
     { st.read(t, v) } -> std::same_as<error>;
     { st.write(t, v) } -> std::same_as<error>;
 };
 
-template<bool is_root>
-struct base_val {
+struct val {
     soa_val_t v;
     doc* d;
 
-    inline constexpr base_val(size_t v, doc* d) :v(soa_val_t{&d->d, v}), d(d) {}
-    inline constexpr base_val(soa_val_t v, doc* d) :v(v), d(d) {}
-    inline constexpr base_val(doc* d) :v(soa_val_t{&d->d, 0}), d(d) {}
-    inline constexpr base_val() :v(0,0) {}
+    inline constexpr val(size_t v, doc* d) :v(soa_val_t{&d->d, v}), d(d) {}
+    inline constexpr val(soa_val_t v, doc* d) :v(v), d(d) {}
+    inline constexpr val(doc* d) :v(soa_val_t{&d->d, 0}), d(d) {}
+    inline constexpr val() :v(0,0) {}
 
-    constexpr base_val(const base_val& other) = default;
-    constexpr base_val(base_val&& other) = default;
-    constexpr ~base_val() = default;
+    constexpr val(const val& other) = default;
+    constexpr val(val&& other) = default;
+    constexpr ~val() = default;
 
-    constexpr base_val& operator=(const base_val& other) = default;
-    constexpr base_val& operator=(base_val&& other) = default;
+    constexpr val& operator=(const val& other) = default;
+    constexpr val& operator=(val&& other) = default;
 
     inline constexpr operator bool() const{
         return v.doc;
@@ -382,57 +368,46 @@ struct base_val {
         return v;
     }
 
-    inline constexpr bool operator==(const base_val& other) const { return v.data == other.v.data && v.doc == other.v.doc; }
-    inline constexpr bool operator!=(const base_val& other) const { return v.data != other.v.data || v.doc != other.v.doc; }
+    inline constexpr bool operator==(const val& other) const { return v.data == other.v.data && v.doc == other.v.doc; }
+    inline constexpr bool operator!=(const val& other) const { return v.data != other.v.data || v.doc != other.v.doc; }
 
     inline constexpr type type() const{
-        if constexpr(is_root){
-            return d->root_type();
-        }
-        else{
-            return static_cast<::soa::type>(soa_val_type(&v));
-        }
+        return static_cast<::soa::type>(soa_val_type(&v));
     }
 
     inline constexpr void set_type(::soa::type t) const {
-        if constexpr(is_root){
-            d->d.root_type = static_cast<soa_root_t>(t);
-        }
-        else{
-            soa_val_set_type(&v, static_cast<soa_type_t>(t));
-        }
+        soa_val_set_type(&v, static_cast<soa_type_t>(t));
     }
 
     template<typename T>
     inline result<T> as() const = delete;
 
-    template<typename T> requires serializable_struct<T, is_root>
+    template<typename T> requires serializable_struct<T>
     inline result<T> as() const {
         T t{};
-        error err = serializer<T, is_root>{}.read(t, *this);
+        error err = serializer<T>{}.read(t, *this);
         if(err.has_value()) return result_error(*err);
         return t;
     }
 
-    template<> inline result<boolean> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<boolean>(soa_val_bool(&v)); }
+    template<> inline result<boolean> as() const { return static_cast<boolean>(soa_val_bool(&v)); }
     template<> inline result<bool> as() const { auto b = soa_val_bool(&v); return b == SOA_BOOL_TRUE ? true : false; }
     
-    template<> inline result<i64> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return soa_val_int(&v); }
-    template<> inline result<int8_t> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<int8_t>(as<i64>().value()); }
-    template<> inline result<int16_t> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<int16_t>(as<i64>().value()); }
-    template<> inline result<int32_t> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<int32_t>(as<i64>().value()); }
+    template<> inline result<i64> as() const { return soa_val_int(&v); }
+    template<> inline result<int8_t> as() const { return static_cast<int8_t>(as<i64>().value()); }
+    template<> inline result<int16_t> as() const { return static_cast<int16_t>(as<i64>().value()); }
+    template<> inline result<int32_t> as() const { return static_cast<int32_t>(as<i64>().value()); }
 
-    template<> inline result<u64> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return soa_val_uint(&v); }
-    template<> inline result<uint8_t> as() const { if constexpr (is_root) return result_error({"value is root", 5});return static_cast<uint8_t>(as<u64>().value()); }
-    template<> inline result<uint16_t> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<uint16_t>(as<u64>().value()); }
-    template<> inline result<uint32_t> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<uint32_t>(as<u64>().value()); }
+    template<> inline result<u64> as() const { return soa_val_uint(&v); }
+    template<> inline result<uint8_t> as() const { return static_cast<uint8_t>(as<u64>().value()); }
+    template<> inline result<uint16_t> as() const { return static_cast<uint16_t>(as<u64>().value()); }
+    template<> inline result<uint32_t> as() const { return static_cast<uint32_t>(as<u64>().value()); }
 
-    template<> inline result<f64> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return soa_val_float(&v); }
-    template<> inline result<float> as() const { if constexpr (is_root) return result_error({"value is root", 5}); return static_cast<float>(as<f64>().value());}
+    template<> inline result<f64> as() const { return soa_val_float(&v); }
+    template<> inline result<float> as() const { return static_cast<float>(as<f64>().value());}
 
     template<>
     inline result<str> as() const{
-        if constexpr (is_root) return result_error({"value is root", 5});
         char* str = soa_val_str(&v);
         if(!str){ return result_error({"value is not a string", 3}); }
         return str;
@@ -440,11 +415,6 @@ struct base_val {
 
     template<>
     inline result<obj> as() const{
-        if constexpr (is_root) {
-            if(d->root_type() != soa::type::obj) 
-                return result_error("inavlid root type");
-            return obj{soa_doc_root_obj(&d->d), d};
-        }
         soa_obj_t o = soa_val_obj(&v);
         if(o.doc == 0){ return result_error({"value is not an object", 3}); }
         return obj{o, d};
@@ -452,68 +422,51 @@ struct base_val {
 
     template<>
     inline result<arr> as() const{
-        if constexpr (is_root) {
-            if(d->root_type() != soa::type::arr) 
-                return result_error("inavlid root type");
-            return arr{soa_doc_root_arr(&d->d), d };
-        }
         soa_arr_t a = soa_val_arr(&v);
         if(a.doc == 0){ return result_error({"value is not an array", 3}); }
         return arr{a, d};
     }
 
-    template<typename T> requires (!serializable<T, is_root> && !serializable_struct<T, is_root>)
+    template<typename T> requires (!serializable<T> && !serializable_struct<T>)
     inline void write(const T t) const {};
 
-    template<typename T> requires serializable_struct<T, is_root>
-    inline void write(const T& t) const { serializer<T, is_root>{}.write(t, *this); }
+    template<typename T> requires serializable_struct<T>
+    inline void write(const T& t) const { serializer<T>{}.write(t, *this); }
 
-    template<> inline void write(const boolean val) const { if constexpr (!is_root) soa_val_set_bool(&v, static_cast<soa_bool_t>(val)); }
-    template<> inline void write(const bool val) const { if constexpr (!is_root) soa_val_set_bool(&v, val ? SOA_BOOL_TRUE : SOA_BOOL_FALSE); }
+    template<> inline void write(const boolean val) const { soa_val_set_bool(&v, static_cast<soa_bool_t>(val)); }
+    template<> inline void write(const bool val) const { soa_val_set_bool(&v, val ? SOA_BOOL_TRUE : SOA_BOOL_FALSE); }
 
-    template<> inline void write(const i64 val) const { if constexpr (!is_root) soa_val_set_int(&v, val);}
-    template<> inline void write(const int8_t val) const { if constexpr (!is_root) write<i64>(static_cast<i64>(val)); }
-    template<> inline void write(const int16_t val) const { if constexpr (!is_root) write<i64>(static_cast<i64>(val)); }
-    template<> inline void write(const int32_t val) const { if constexpr (!is_root) write<i64>(static_cast<i64>(val)); }
+    template<> inline void write(const i64 val) const { soa_val_set_int(&v, val);}
+    template<> inline void write(const int8_t val) const { write<i64>(static_cast<i64>(val)); }
+    template<> inline void write(const int16_t val) const { write<i64>(static_cast<i64>(val)); }
+    template<> inline void write(const int32_t val) const { write<i64>(static_cast<i64>(val)); }
 
-    template<> inline void write(const u64 val) const { if constexpr (!is_root) soa_val_set_uint(&v, val); }
-    template<> inline void write(const uint8_t val) const { if constexpr (!is_root) write<u64>(static_cast<u64>(val)); }
-    template<> inline void write(const uint16_t val) const { if constexpr (!is_root) write<u64>(static_cast<u64>(val)); }
-    template<> inline void write(const uint32_t val) const { if constexpr (!is_root) write<u64>(static_cast<u64>(val)); }
+    template<> inline void write(const u64 val) const { soa_val_set_uint(&v, val); }
+    template<> inline void write(const uint8_t val) const { write<u64>(static_cast<u64>(val)); }
+    template<> inline void write(const uint16_t val) const { write<u64>(static_cast<u64>(val)); }
+    template<> inline void write(const uint32_t val) const { write<u64>(static_cast<u64>(val)); }
 
 
-    template<> inline void write(const f64 val) const { if constexpr (!is_root) soa_val_set_float(&v, val); }
-    template<> inline void write(const float val) const { if constexpr (!is_root) write<f64>(static_cast<f64>(val)); }
+    template<> inline void write(const f64 val) const { soa_val_set_float(&v, val); }
+    template<> inline void write(const float val) const { write<f64>(static_cast<f64>(val)); }
 
-    template<> inline void write(const str val) const { if constexpr (!is_root) soa_val_set_str(&v, val.data()); }
+    template<> inline void write(const str val) const { soa_val_set_str(&v, val.data()); }
     template<> inline void write(const obj val) const { 
-        if constexpr (is_root){
-            set_type(soa::type::obj);
-            d->d.root = val.o.data;
-        } 
-        else{
-            soa_val_set_obj(&v, &val.o); 
-        }
+        soa_val_set_obj(&v, &val.o); 
     }
     template<> inline void write(const arr val) const { 
-        if constexpr (is_root){
-            set_type(soa::type::arr);
-            d->d.root = val.a.data;
-        } 
-        else{
-            soa_val_set_arr(&v, &val.a); 
-        }
+        soa_val_set_arr(&v, &val.a); 
     }
 };
 
-constexpr root_val doc::val() {
-    return root_val{this};
+constexpr val doc::val() {
+    return ::soa::val{soa_doc_root(&d), this};
 }
 
-template<typename T, bool R> requires serializable<T, R>
-struct serializer<T, R> {
-    inline constexpr error read(T& ref, const base_val<R>& v) { return T::template serializer<serializer_mode::read, T&>(ref, v);} 
-    inline constexpr error write(const T& ref, const base_val<R>& v) { return T::template serializer<serializer_mode::write, const T&>(ref, v);} 
+template<typename T> requires serializable<T>
+struct serializer<T> {
+    inline constexpr error read(T& ref, const val& v) { return T::template serializer<serializer_mode::read, T&>(ref, v);} 
+    inline constexpr error write(const T& ref, const val& v) { return T::template serializer<serializer_mode::write, const T&>(ref, v);} 
 };
 
 struct obj::pair{
@@ -799,9 +752,9 @@ struct std::formatter<soa::val> {
     }
 };
 
-template<typename T, bool R> requires soa::array_container<T>
-struct soa::serializer<T, R>{
-    constexpr soa::error read(T& vec, const soa::base_val<R>& v){
+template<typename T> requires soa::array_container<T>
+struct soa::serializer<T>{
+    constexpr soa::error read(T& vec, const soa::val& v){
         auto arr = v.template as<::soa::arr>();
         if(arr) {
             vec.resize(arr->size());
@@ -820,7 +773,7 @@ struct soa::serializer<T, R>{
         }
         return soa::error{};
     } 
-    constexpr soa::error write(const T& vec, const soa::base_val<R>& v){
+    constexpr soa::error write(const T& vec, const soa::val& v){
         auto arr = v.d->add_arr(vec.size());
         for (size_t i = 0; i < vec.size(); i++) {
             arr.at(i).template write<typename T::value_type>(vec[i]);
@@ -830,9 +783,9 @@ struct soa::serializer<T, R>{
     }    
 };
 
-template<typename T, bool R> requires soa::map_container<T>
-struct soa::serializer<T, R>{
-    constexpr soa::error read(T& map, const soa::base_val<R>& v){
+template<typename T> requires soa::map_container<T>
+struct soa::serializer<T>{
+    constexpr soa::error read(T& map, const soa::val& v){
         auto obj = v.template as<::soa::obj>();
         if(obj) {
             for (size_t i = 0; i < obj->size(); i++) {
@@ -851,7 +804,7 @@ struct soa::serializer<T, R>{
         }
         return soa::error{};
     } 
-    constexpr soa::error write(const T& map, const soa::base_val<R>& v){
+    constexpr soa::error write(const T& map, const soa::val& v){
         auto obj = v.d->add_obj(map.size());
         size_t i = 0;
         for ( auto it = map.begin(); it != map.end(); ++it) {

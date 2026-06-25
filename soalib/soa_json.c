@@ -727,34 +727,43 @@ soa_doc_t soa_doc_new_from_json(const char* json){
     //     printf("obj %lu: %lu\n", j, i.osizes[j]);
     // }
 
-    soa_doc_t doc = soa_doc_new();
+    soa_doc_t doc = soa_doc_init();
     
-    doc.size =
+    size_t root_size = sizeof(soa_valu_t) + sizeof(size_t);
+
+    doc.size = root_size +
     (i.ao + i.oo) * sizeof(size_t) + 
     i.ae * sizeof(soa_arr_entry_t) +
     i.oe * sizeof(soa_obj_entry_t) +
     i.str_size;
     doc.cap = doc.size;
     doc.data = malloc(doc.size);
-    doc.root_type = i.root_type;
-    
+
+    soa_val_t root = soa_doc_root(&doc);
+    soa_val_set_int(&root, 0);
+
+
     if(i.root_type == SOA_ROOT_ARR){
         _read_arr(json, &i, &(_json_read_info_t){
-            0, 0, 
-            0, i.ao * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t), 
-            (i.ao + i.oo) * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t) + i.oe * sizeof(soa_obj_entry_t), 
+            0, root_size,
+            0, root_size + i.ao * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t),
+            root_size + (i.ao + i.oo) * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t) + i.oe * sizeof(soa_obj_entry_t),
             doc.data, doc.data
         });
-        doc.root = 0;
+        soa_arr_t arr = (soa_arr_t){ .doc = &doc, .data = root_size };
+        soa_val_t root = soa_doc_root(&doc);
+        soa_val_set_arr(&root, &arr);
     }
     else{
         _read_obj(json, &i, &(_json_read_info_t){
-            0, 0, 
-            0, i.ao * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t), 
-            (i.ao + i.oo) * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t) + i.oe * sizeof(soa_obj_entry_t), 
+            0, root_size,
+            0, root_size + i.ao * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t),
+            root_size + (i.ao + i.oo) * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t) + i.oe * sizeof(soa_obj_entry_t),
             doc.data, doc.data
         });
-        doc.root = i.ao * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t);
+        soa_obj_t obj = (soa_obj_t){ .doc = &doc, .data = root_size + i.ao * sizeof(size_t) + i.ae * sizeof(soa_arr_entry_t) };
+        soa_val_t root = soa_doc_root(&doc);
+        soa_val_set_obj(&root, &obj);
     }
 
 
@@ -942,13 +951,15 @@ void _print_val(soa_val_t* val, _soa_str_t* str, soa_json_parse_flags_t flags, s
 char* soa_json_new_from_doc(soa_doc_t* doc, soa_json_parse_flags_t flags){
     _soa_str_t str = _soa_str_new(64);
 
-    if(doc->root_type == SOA_ROOT_ARR){
-        soa_arr_t root = soa_doc_root_arr(doc);
-        _print_arr(&root, &str, flags, 0);
+    soa_val_t root = soa_doc_root(doc);
+
+    if(soa_val_type(&root) == SOA_TYPE_ARR) {
+        soa_arr_t r = soa_val_arr(&root);
+        _print_arr(&r, &str, flags, 0);
     }
     else {
-        soa_obj_t root = soa_doc_root_obj(doc);
-        _print_obj(&root, &str, flags, 0);
+        soa_obj_t r = soa_val_obj(&root);
+        _print_obj(&r, &str, flags, 0);
     }
 
     return str.str;

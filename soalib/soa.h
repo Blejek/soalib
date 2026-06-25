@@ -62,14 +62,12 @@ typedef enum {
     SOA_ROOT_OBJ = SOA_TYPE_OBJ,
     SOA_ROOT_ARR = SOA_TYPE_ARR
 } soa_root_bit_t;
-typedef uint8_t soa_root_t;
+typedef soa_type_t soa_root_t;
 
 typedef struct {
     uint8_t* data;
     size_t size;
     size_t cap;
-    size_t root;
-    soa_root_t root_type; 
 } soa_doc_t;
 
 typedef enum {
@@ -120,11 +118,13 @@ typedef struct {
     size_t data;
 } soa_arr_t;
 
+soa_doc_t soa_doc_init();
 soa_doc_t soa_doc_new();
 void soa_doc_free(soa_doc_t* doc);
 
-soa_obj_t soa_doc_root_obj(soa_doc_t* doc);
-soa_arr_t soa_doc_root_arr(soa_doc_t* doc);
+soa_val_t soa_doc_root(soa_doc_t* doc);
+//soa_obj_t soa_doc_root_obj(soa_doc_t* doc);
+//soa_arr_t soa_doc_root_arr(soa_doc_t* doc);
 
 uint8_t* _soa_doc_grow(soa_doc_t* doc, size_t size);
 soa_obj_t soa_doc_add_obj(soa_doc_t* doc, size_t element_count);
